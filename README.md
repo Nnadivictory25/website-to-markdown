@@ -22,10 +22,8 @@ A powerful Go-based tool that recursively converts websites to clean markdown fo
 - [⚙️ Configuration](#️-configuration)
 - [🛠️ Development](#️-development)
 - [📝 Real-World Examples](#-real-world-examples)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
-
-> 🎯 **Perfect for**: Documentation archiving, SEO audits, content migration, AI training data, and research projects!
+ - [🤝 Contributing](#-contributing)
+ - [📄 License](#-license)
 
 ## ✨ Features
 
