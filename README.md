@@ -31,9 +31,9 @@ A powerful Go-based tool that recursively converts websites to clean markdown fo
 - **🌐 Recursive Scraping**: Automatically follow links to scrape entire website sections
 - **🚫 Duplicate Prevention**: Smart URL normalization prevents infinite loops and duplicate pages
 - **📊 Configurable Depth**: Control scraping depth (1-10 levels) with intelligent limits
-- **⏱️ Rate Limiting**: Respectful delays between requests (500ms-3000ms)
+- **⏱️ Rate Limiting**: Respectful delays between requests (100ms-3000ms)
 - **🌍 External Link Support**: Option to follow external links or stay within domain
-- **🎯 Smart Filtering**: Auto-skips non-HTML content, files, and tracking parameters
+- **🎯 Smart Filtering**: Auto-skips non-HTML content, files, and minimal pages
 
 ### 📄 Output Options
 - **📁 Individual Files**: Separate markdown files for each page
@@ -111,17 +111,6 @@ cd frontend && bun run dev
 | `--output, -o` | Output directory                     | current directory              |
 | `--format, -f` | Output format: `files`, `single`, `json` | files                          |
 | `--user-agent` | Custom User-Agent string             | Website-Markdown-Converter/1.0 |
-
-### CLI Options
-
-| Flag           | Description                                 | Default                        |
-| -------------- | ------------------------------------------- | ------------------------------ |
-| `--depth, -d`  | Maximum depth for recursive scraping        | 3                              |
-| `--delay`      | Delay between requests in milliseconds      | 1000                           |
-| `--external`   | Follow external links                       | false                          |
-| `--output, -o` | Output directory                            | current directory              |
-| `--format, -f` | Output format: `files`, `single`, or `json` | files                          |
-| `--user-agent` | Custom User-Agent string                    | Website-Markdown-Converter/1.0 |
 
 ### CLI Examples
 
@@ -317,9 +306,9 @@ export DEFAULT_USER_AGENT="Website-Markdown-Converter/1.0"
 ```
 
 ### Respectful Scraping
-- **⏱️ Configurable delays** (500ms-3000ms) between requests
+- **⏱️ Configurable delays** (100ms-3000ms) between requests
 - **🤖 Proper User-Agent** identification
-- **🚫 Smart filtering** of non-HTML content and files
+- **🚫 Smart filtering** of non-HTML content, files, and minimal pages
 - **📝 robots.txt respect** (planned feature)
 - **🔒 Built-in rate limiting** to prevent abuse
 
@@ -398,52 +387,16 @@ website-markdown/
 
 ### 🌐 **API Examples**
 
-**Direct curl:**
-
 ```bash
-# Quick scrape via API
-curl -X POST http://localhost:8080/api/v1/scrape \
+# Download markdown file directly
+curl "http://localhost:8080/download/markdown?url=https://docs.github.com&depth=2&delay=100" \
+  --output docs.md
+
+# JSON API response
+curl -X POST http://localhost:8080/scrape \
   -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://github.com/features",
-    "maxDepth": 2,
-    "delay": 1000,
-    "followExternal": false
-  }'
-
-# Health check
-curl http://localhost:8080/health
-# Returns: {"status":"healthy","time":"2024-01-15T14:30:25Z"}
-```
-
-**JavaScript fetch:**
-
-```javascript
-const response = await fetch('http://localhost:8080/scrape', {
-	method: 'POST',
-	headers: { 'Content-Type': 'application/json' },
-	body: JSON.stringify({
-		url: 'https://docs.github.com',
-		maxDepth: 3,
-		delay: 1500,
-		followExternal: false,
-	}),
-});
-
-const result = await response.json();
-console.log(
-	`✅ Found ${result.stats.successPages} pages in ${result.stats.processingTime}`
-);
-```
-
-**Download markdown file:**
-
-```bash
-# Direct download via API
-curl "http://localhost:8080/download/markdown?url=https://example.com&depth=2&delay=1000" \
-  --output website-content.md
-
-# Or with browser: http://localhost:8080/download/markdown?url=https://example.com
+  -d '{"url": "https://github.com/features", "maxDepth": 2, "delay": 1000}' \
+  | jq '.stats.successPages'
 ```
 
 ## 🤝 Contributing
@@ -485,49 +438,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 - [Svelte](https://svelte.dev/) and [Tailwind CSS](https://tailwindcss.com/) for the frontend
 
 ---
-
-## 🚀 Ready to Start Converting?
-
-### 🏃‍♀️ **Quick Start (30 seconds)**
-
-```bash
-# Clone & build
-git clone <repo-url> && cd website-markdown/backend
-go build -o website-markdown main.go
-
-# Test it immediately
-./website-markdown https://example.com --depth 2
-# 📄 Creates: example-com_2024-01-15_14-30-25.md
-```
-
-### 🌐 **Full Web Experience**
-
-```bash
-# Terminal 1: API Server
-cd backend && ./website-markdown --server &
-
-# Terminal 2: Svelte Frontend
-cd frontend && bun run dev
-
-# Open browser: http://localhost:5173 ✨
-```
-
-### 🎯 **Perfect For:**
-
-- 📚 **Documentation archiving** - Offline access to docs
-- 🔍 **SEO content audits** - Analyze site content structure
-- 📖 **Research projects** - Convert sites to readable format
-- 🤖 **AI/ML training data** - Clean markdown from web content
-- 📱 **Content migration** - Export existing sites
-- 🧑‍💻 **Developer workflows** - Integrate into build processes
-
-### 💡 **Pro Tips:**
-
-- Start with `depth 1-2` for large sites
-- Use `--delay 2000+` for respectful scraping
-- Try `--format json` for programmatic processing
-- Use the web UI for interactive exploration
-- Check console logs for duplicate prevention stats
-
-**Ready to scrape smarter, not harder?** 🎯  
-Visit `http://localhost:5173` and start converting! 🚀
