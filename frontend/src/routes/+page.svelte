@@ -7,7 +7,7 @@
 	let results: any = null;
 	let error = '';
 
-	const API_BASE = 'http://localhost:8080/api/v1';
+	const API_BASE = 'http://localhost:8080';
 
 	async function handleSubmit() {
 		if (!url) {

@@ -122,13 +122,17 @@ func (s *Scraper) scrapeRecursive(pageURL string, depth int, results *[]*Scraped
 	}
 
 	page, links := s.scrapePage(normalizedURL, depth)
-	*results = append(*results, page)
 
-	// Recursively scrape found links
-	for _, link := range links {
-		normalizedLink := s.normalizeURL(link)
-		if !s.visited[normalizedLink] {
-			s.scrapeRecursive(normalizedLink, depth+1, results)
+	// Only add page to results if it wasn't filtered out
+	if page != nil {
+		*results = append(*results, page)
+
+		// Recursively scrape found links
+		for _, link := range links {
+			normalizedLink := s.normalizeURL(link)
+			if !s.visited[normalizedLink] {
+				s.scrapeRecursive(normalizedLink, depth+1, results)
+			}
 		}
 	}
 }
@@ -187,6 +191,12 @@ func (s *Scraper) scrapePage(pageURL string, depth int) (*ScrapedPage, []string)
 	}
 
 	page.Markdown = s.cleanMarkdown(markdown)
+
+	// Filter out pages with minimal or generic content
+	if s.isContentMinimal(page.Title, page.Markdown, pageURL) {
+		fmt.Printf("⏭️  Skipping page with minimal content: %s\n", pageURL)
+		return nil, nil // Return nil to skip this page
+	}
 
 	// Extract links for recursive scraping
 	var links []string
@@ -306,6 +316,38 @@ func (s *Scraper) normalizeURL(rawURL string) string {
 	}
 
 	return parsedURL.String()
+}
+
+func (s *Scraper) isContentMinimal(title, markdown, url string) bool {
+	// Skip if title is just the URL (no real title)
+	if title == url || strings.TrimSpace(title) == "" {
+		return true
+	}
+
+	// Skip if content is very short (less than 200 characters)
+	if len(strings.TrimSpace(markdown)) < 200 {
+		return true
+	}
+
+	// Skip if content contains only navigation/header elements without real content
+	lines := strings.Split(markdown, "\n")
+	contentLines := 0
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// Count lines that aren't just navigation, headers, or empty
+		if line != "" && !strings.HasPrefix(line, "#") &&
+			!strings.Contains(line, "Skip to main content") &&
+			!strings.Contains(line, "[") && !strings.Contains(line, "](") {
+			contentLines++
+		}
+	}
+
+	// Skip if less than 3 lines of actual content
+	if contentLines < 3 {
+		return true
+	}
+
+	return false
 }
 
 func (s *Scraper) cleanMarkdown(markdown string) string {

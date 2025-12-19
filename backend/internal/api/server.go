@@ -3,7 +3,9 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"website-markdown/internal/scraper"
@@ -68,11 +70,9 @@ func (s *Server) setupRoutes() {
 	s.router.GET("/health", s.healthCheck)
 
 	// API routes
-	api := s.router.Group("/api/v1")
-	{
-		api.POST("/scrape", s.scrapeWebsite)
-		api.GET("/status", s.getStatus)
-	}
+	s.router.POST("/scrape", s.scrapeWebsite)
+	s.router.GET("/download/markdown", s.downloadMarkdown)
+	s.router.GET("/status", s.getStatus)
 
 	// Serve static files for docs (optional)
 	s.router.Static("/docs", "./docs")
@@ -81,8 +81,9 @@ func (s *Server) setupRoutes() {
 func (s *Server) Start() error {
 	fmt.Printf("🚀 Starting API server on port %s\n", s.port)
 	fmt.Printf("📝 API Endpoints:\n")
-	fmt.Printf("   POST /api/v1/scrape - Scrape a website\n")
-	fmt.Printf("   GET  /api/v1/status - Get server status\n")
+	fmt.Printf("   POST /scrape - Scrape a website\n")
+	fmt.Printf("   GET  /download/markdown - Download scraped content as markdown\n")
+	fmt.Printf("   GET  /status - Get server status\n")
 	fmt.Printf("   GET  /health - Health check\n")
 	fmt.Printf("🌐 CORS enabled for frontend on localhost:5173 and localhost:4173\n")
 
@@ -102,11 +103,85 @@ func (s *Server) getStatus(c *gin.Context) {
 		"status":  "running",
 		"version": "1.0.0",
 		"endpoints": []string{
-			"POST /api/v1/scrape",
-			"GET /api/v1/status",
+			"POST /scrape",
+			"GET /download/markdown",
+			"GET /status",
 			"GET /health",
 		},
 	})
+}
+
+func (s *Server) downloadMarkdown(c *gin.Context) {
+	startTime := time.Now()
+
+	// Get parameters from query string
+	urlParam := c.Query("url")
+	if urlParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "❌ URL parameter is required",
+		})
+		return
+	}
+
+	// Parse other parameters
+	maxDepth := 3
+	if depthParam := c.Query("depth"); depthParam != "" {
+		if parsed, err := strconv.Atoi(depthParam); err == nil && parsed > 0 {
+			maxDepth = parsed
+		}
+	}
+	if maxDepth > 10 {
+		maxDepth = 10 // Prevent abuse
+	}
+
+	delay := 1000
+	if delayParam := c.Query("delay"); delayParam != "" {
+		if parsed, err := strconv.Atoi(delayParam); err == nil && parsed >= 100 {
+			delay = parsed
+		}
+	}
+
+	followExternal := false
+	if externalParam := c.Query("external"); externalParam == "true" {
+		followExternal = true
+	}
+
+	fmt.Printf("🔄 API markdown download: %s (depth: %d, delay: %dms, external: %t)\n",
+		urlParam, maxDepth, delay, followExternal)
+
+	// Create scraper config
+	config := &scraper.ScrapingConfig{
+		MaxDepth:       maxDepth,
+		Delay:          time.Duration(delay) * time.Millisecond,
+		FollowExternal: followExternal,
+		UserAgent:      "Website-Markdown-API/1.0",
+	}
+
+	// Perform scraping
+	scrapeInstance := scraper.NewScraper(config)
+	pages, err := scrapeInstance.ScrapeWebsite(urlParam)
+
+	if err != nil {
+		fmt.Printf("❌ Scraping failed: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Scraping failed: %v", err),
+		})
+		return
+	}
+
+	// Generate combined markdown content
+	markdownContent := generateCombinedMarkdown(pages, urlParam, startTime)
+
+	// Generate filename
+	filename := generateMarkdownFilename(urlParam)
+
+	// Set headers for file download
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "text/markdown; charset=utf-8")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(markdownContent)))
+
+	// Return the markdown content directly
+	c.Data(http.StatusOK, "text/markdown; charset=utf-8", []byte(markdownContent))
 }
 
 func (s *Server) scrapeWebsite(c *gin.Context) {
@@ -207,6 +282,58 @@ func calculateStats(pages []*scraper.ScrapedPage, startTime, endTime time.Time) 
 	}
 
 	return stats
+}
+
+func generateCombinedMarkdown(pages []*scraper.ScrapedPage, baseURL string, scrapeTime time.Time) string {
+	var content strings.Builder
+
+	// Table of Contents
+	content.WriteString("# Table of Contents\n\n")
+	pageNum := 1
+	for _, page := range pages {
+		if page.Error == "" {
+			content.WriteString(fmt.Sprintf("%d. [%s](#page-%d)\n", pageNum, page.Title, pageNum))
+			pageNum++
+		}
+	}
+
+	content.WriteString("\n---\n\n")
+
+	// Content sections
+	pageNum = 1
+	for _, page := range pages {
+		if page.Error != "" {
+			continue // Skip error pages in main content
+		}
+
+		content.WriteString(fmt.Sprintf("## %s {#page-%d}\n\n", page.Title, pageNum))
+		content.WriteString(page.Markdown)
+		content.WriteString("\n\n---\n\n")
+		pageNum++
+	}
+
+	return content.String()
+}
+
+func generateMarkdownFilename(websiteURL string) string {
+	parsedURL, err := url.Parse(websiteURL)
+	if err != nil {
+		// Fallback if URL parsing fails
+		timestamp := time.Now().Format("2006-01-02_15-04-05")
+		return fmt.Sprintf("website_%s.md", timestamp)
+	}
+
+	// Get hostname and remove www. prefix
+	siteName := parsedURL.Hostname()
+	siteName = strings.TrimPrefix(siteName, "www.")
+
+	// Clean up the site name to be filesystem-safe
+	siteName = strings.ReplaceAll(siteName, ".", "-")
+
+	// Generate timestamp
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+
+	return fmt.Sprintf("%s_%s.md", siteName, timestamp)
 }
 
 // Helper function to start server from main

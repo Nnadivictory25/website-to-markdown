@@ -10,56 +10,63 @@ A powerful Go-based tool that recursively converts websites to clean markdown fo
 
 > 🎯 **Perfect for**: Documentation archiving, SEO audits, content migration, AI training data, and research projects!
 
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [🖥️ CLI Usage](#️-cli-usage)
+- [🌐 Web Interface](#-web-interface)
+- [📁 Output Formats](#-output-formats)
+- [🧠 Intelligent Duplicate Prevention](#-intelligent-duplicate-prevention)
+- [🔧 API Reference](#-api-reference)
+- [⚙️ Configuration](#️-configuration)
+- [🛠️ Development](#️-development)
+- [📝 Real-World Examples](#-real-world-examples)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+> 🎯 **Perfect for**: Documentation archiving, SEO audits, content migration, AI training data, and research projects!
+
 ## ✨ Features
 
-### 🔧 **Core Functionality**
+### 🔧 Core Functionality
+- **🌐 Recursive Scraping**: Automatically follow links to scrape entire website sections
+- **🚫 Duplicate Prevention**: Smart URL normalization prevents infinite loops and duplicate pages
+- **📊 Configurable Depth**: Control scraping depth (1-10 levels) with intelligent limits
+- **⏱️ Rate Limiting**: Respectful delays between requests (500ms-3000ms)
+- **🌍 External Link Support**: Option to follow external links or stay within domain
+- **🎯 Smart Filtering**: Auto-skips non-HTML content, files, and tracking parameters
 
-- 🌐 **Recursive Scraping**: Automatically follow links to scrape entire website sections
-- 🚫 **Duplicate Prevention**: Smart URL normalization prevents infinite loops and duplicate pages
-- 📊 **Configurable Depth**: Control scraping depth (1-10 levels) with intelligent limits
-- ⏱️ **Rate Limiting**: Respectful delays between requests (500ms-3000ms)
-- 🌍 **External Link Support**: Option to follow external links or stay within domain
-- 🎯 **Smart Filtering**: Auto-skips non-HTML content, files, and tracking parameters
+### 📄 Output Options
+- **📁 Individual Files**: Separate markdown files for each page
+- **📄 Single Combined File**: All pages in one markdown document
+- **📦 JSON Export**: Structured data format for programmatic use
+- **💾 Direct Downloads**: API endpoint returns downloadable .md files
+- **🏷️ Smart Naming**: Files named with website + timestamp
 
-### 📄 **Output Options**
-
-- 📁 **Individual Files**: Separate markdown files for each page
-- 📄 **Single File**: Combined markdown with all pages
-- 📦 **JSON Export**: Structured data format for programmatic use
-- 🏷️ **Smart Naming**: Files named with website + timestamp (e.g., `github-com_2024-01-15_14-30-25.md`)
-
-### 🖥️ **Dual Interface**
-
-- 🖥️ **CLI Tool**: Full-featured command-line interface
-- 🌐 **Web API**: RESTful API with CORS support
-- 📱 **Modern UI**: Responsive Svelte frontend with real-time progress
-- 💾 **One-Click Downloads**: Direct download buttons for both formats
+### 🖥️ Interfaces
+- **🖥️ CLI Tool**: Full-featured command-line interface
+- **🌐 REST API**: CORS-enabled API with multiple endpoints
+- **📱 Modern Web UI**: Responsive Svelte frontend with real-time progress
+- **💾 One-Click Downloads**: Direct download buttons for all formats
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - **Go 1.19+** for the backend
 - **Bun** for the frontend (faster than npm/yarn)
 - Modern web browser for the UI
 
 ### Installation
 
-1. **Clone the repository**
-
+1. **Clone and build CLI**
    ```bash
    git clone <repository-url>
-   cd website-markdown
-   ```
-
-2. **Build the CLI tool**
-
-   ```bash
-   cd backend
+   cd website-markdown/backend
    go build -o website-markdown main.go
    ```
 
-3. **Install frontend dependencies**
+2. **Install frontend dependencies**
    ```bash
    cd ../frontend
    bun install
@@ -69,35 +76,43 @@ A powerful Go-based tool that recursively converts websites to clean markdown fo
 
 ```bash
 # Test CLI
-cd backend
 ./website-markdown https://example.com --depth 2
 
-# Start web interface
-cd backend && ./website-markdown --server &  # Start API
-cd frontend && bun run dev                   # Start UI
+# Start full web interface
+cd backend && ./website-markdown --server &
+cd frontend && bun run dev
 # Visit http://localhost:5173
 ```
 
 ## 🖥️ CLI Usage
 
-### Basic Usage
+### Basic Commands
 
 ```bash
-# Convert a website with default settings (3 levels deep)
+# Convert with defaults (3 levels deep)
 ./website-markdown https://example.com
 
-# Specify custom depth and output directory
+# Custom depth and output directory
 ./website-markdown https://example.com --depth 2 --output ./docs
 
-# Follow external links and use custom delay
+# Follow external links with custom delay
 ./website-markdown https://example.com --external --delay 2000
 
-# Output as single markdown file
-./website-markdown https://example.com --format single
-
-# Output as JSON
-./website-markdown https://example.com --format json
+# Output formats
+./website-markdown https://example.com --format single  # Single .md file
+./website-markdown https://example.com --format json    # JSON data
 ```
+
+### CLI Options
+
+| Flag           | Description                          | Default                        |
+| -------------- | ------------------------------------ | ------------------------------ |
+| `--depth, -d`  | Maximum scraping depth (1-10)        | 3                              |
+| `--delay`      | Delay between requests (ms)          | 1000                           |
+| `--external`   | Follow external links                | false                          |
+| `--output, -o` | Output directory                     | current directory              |
+| `--format, -f` | Output format: `files`, `single`, `json` | files                          |
+| `--user-agent` | Custom User-Agent string             | Website-Markdown-Converter/1.0 |
 
 ### CLI Options
 
@@ -123,124 +138,92 @@ cd frontend && bun run dev                   # Start UI
 ./website-markdown https://example.com --delay 3000 --depth 1
 ```
 
-## 🌐 Web Interface Usage
+## 🌐 Web Interface
 
-### Start Both Servers
+### Starting the Interface
 
 **Option 1: Separate terminals**
-
 ```bash
 # Terminal 1: API Server
-cd backend
-./website-markdown --server --port 8080
+cd backend && ./website-markdown --server
 
-# Terminal 2: Frontend (Svelte + Vite)
-cd frontend
-bun run dev
+# Terminal 2: Frontend
+cd frontend && bun run dev
 ```
 
-**Option 2: Background API**
-
+**Option 2: Background mode**
 ```bash
 cd backend && ./website-markdown --server &
 cd frontend && bun run dev
 # Visit http://localhost:5173
 ```
 
-### 🎨 **Modern Svelte UI Features**
+### 🎨 Features
+- **🌐 Smart URL Input**: Validation with error handling
+- **⚙️ Visual Controls**: Depth slider, delay selector, external links toggle
+- **📊 Real-time Stats**: Live progress with success/error counts and processing time
+- **💾 Direct Downloads**: One-click downloads for markdown and JSON formats
+- **📄 Live Preview**: Expandable content preview
+- **📱 Responsive Design**: Works on mobile and desktop
+- **🎯 Modern Stack**: Svelte 5 + Tailwind CSS 4 + TypeScript
 
-- 🌐 **URL Input**: Smart validation with error handling
-- ⚙️ **Visual Controls**:
-  - Depth slider (1-5 levels)
-  - Delay selector (500ms-3000ms)
-  - External links toggle
-- 📊 **Real-time Stats**: Live progress with emoji feedback
-  - Total pages found
-  - Success/error counts
-  - Processing time
-  - Duplicate prevention stats
-- 💾 **Smart Downloads**: One-click downloads with intelligent naming
-  - `website-name_2024-01-15_14-30-25.md`
-  - `website-name_2024-01-15_14-30-25.json`
-- 📄 **Live Preview**: Expandable preview of scraped content
-- 📱 **Responsive**: Works perfectly on mobile and desktop
-- 🎯 **Built with**: Svelte 5 + Tailwind CSS 4 + TypeScript
+## 📁 Output Formats
 
-## 📁 Output Formats & Smart Naming
+All outputs use **smart naming** with website + timestamp (e.g., `github-com_2024-01-15_14-30-25.md`).
 
-All files now use **smart naming** with website + timestamp for better organization.
+### CLI Formats
 
-### Individual Files (`--format files`)
-
-Creates separate markdown files for each page:
-
+#### Individual Files (`--format files`)
+Creates a directory with separate markdown files for each page:
 ```
 github-com_2024-01-15_14-30-25/
 ├── page-001-GitHub-Homepage.md
 ├── page-002-About-GitHub.md
-├── page-003-Features.md
-...
+└── page-003-Features.md
 ```
 
-### Single Combined File (`--format single`)
-
-Creates one comprehensive markdown file:
-
-```
-github-com_2024-01-15_14-30-25.md
-```
-
-Content structure:
-
+#### Single Combined File (`--format single`)
+One comprehensive markdown file with all pages:
 ```markdown
 # Website Content: https://github.com
 
 _Scraped on 2024-01-15 14:30:25_
-_Found 15 unique pages (skipped 8 duplicates)_
+_Found 15 unique pages_
 
 ---
 
 ## 📄 Page 1: GitHub Homepage
+**URL:** https://github.com | **Depth:** 0
 
-**URL:** https://github.com
-**Depth:** 0
-
----
-
-[Clean markdown content here]
+[Content...]
 
 ## 📄 Page 2: About GitHub
+**URL:** https://github.com/about | **Depth:** 1
 
-**URL:** https://github.com/about
-**Depth:** 1
-
----
-
-[More content...]
+[Content...]
 ```
 
-### JSON Output (`--format json`)
-
-Creates structured data file: `github-com_2024-01-15_14-30-25.json`
-
+#### JSON Export (`--format json`)
+Structured data file for programmatic use:
 ```json
 [
-	{
-		"url": "https://github.com",
-		"title": "GitHub: Let's build from here",
-		"markdown": "[converted content]",
-		"depth": 0,
-		"error": ""
-	},
-	{
-		"url": "https://github.com/about",
-		"title": "About GitHub",
-		"markdown": "[about content]",
-		"depth": 1,
-		"error": ""
-	}
+  {
+    "url": "https://github.com",
+    "title": "GitHub Homepage",
+    "markdown": "[converted content]",
+    "depth": 0,
+    "error": ""
+  }
 ]
 ```
+
+### API Endpoints
+
+#### POST `/scrape`
+Returns JSON response with pages array and stats.
+
+#### GET `/download/markdown`
+Returns downloadable `.md` file with combined content and table of contents. Query parameters: `url` (required), `depth`, `delay`, `external`.
 
 ## 🧠 Intelligent Duplicate Prevention
 
@@ -274,23 +257,20 @@ The scraper now includes smart URL normalization to prevent infinite loops and d
 
 ## 🔧 API Reference
 
-### POST `/api/v1/scrape`
+### POST `/scrape`
+Scrape a website and return JSON results.
 
-Scrape a website and return the results.
-
-**Request Body:**
-
+**Request:**
 ```json
 {
-	"url": "https://example.com",
-	"maxDepth": 3,
-	"delay": 1000,
-	"followExternal": false
+  "url": "https://example.com",
+  "maxDepth": 3,
+  "delay": 1000,
+  "followExternal": false
 }
 ```
 
 **Response:**
-
 ```json
 {
   "success": true,
@@ -307,95 +287,80 @@ Scrape a website and return the results.
 }
 ```
 
-### GET `/api/v1/status`
+### GET `/download/markdown`
+Download scraped website content as markdown file with table of contents.
 
+**Request:** `GET /download/markdown?url=https://example.com&depth=3&delay=1000&external=false`
+
+**Parameters:**
+- `url` (required): Website URL to scrape
+- `depth` (optional): Maximum scraping depth (1-10, default: 3)
+- `delay` (optional): Delay between requests in ms (default: 1000, min: 100)
+- `external` (optional): Follow external links (default: false)
+
+**⚡ Speed Note:** Minimum 100ms delay enforced for respectful scraping. Use 100-500ms for fast but responsible scraping.
+
+**Response:** Markdown file with table of contents, statistics, and all scraped content. Includes anchor links for easy navigation.
+
+### GET `/status`
 Get server status and available endpoints.
 
 ### GET `/health`
-
 Health check endpoint.
 
 ## ⚙️ Configuration
 
 ### Environment Variables
-
-You can configure the application using environment variables:
-
 ```bash
-# API server port
-export PORT=8080
-
-# Default scraping settings
-export DEFAULT_MAX_DEPTH=3
-export DEFAULT_DELAY=1000
+export PORT=8080                    # API server port
+export DEFAULT_MAX_DEPTH=3          # Default scraping depth
+export DEFAULT_DELAY=1000           # Default delay between requests
 export DEFAULT_USER_AGENT="Website-Markdown-Converter/1.0"
 ```
 
 ### Respectful Scraping
-
-The tool is designed to be respectful to target websites:
-
-- ⏱️ **Default 1-second delays** between requests
-- 🤖 **Proper User-Agent** identification
-- 🚫 **Skips non-HTML content** automatically
-- 📝 **Respects robots.txt** (planned feature)
-- 🔒 **Rate limiting** in API mode
+- **⏱️ Configurable delays** (500ms-3000ms) between requests
+- **🤖 Proper User-Agent** identification
+- **🚫 Smart filtering** of non-HTML content and files
+- **📝 robots.txt respect** (planned feature)
+- **🔒 Built-in rate limiting** to prevent abuse
 
 ## 🛠️ Development
 
-### 🔨 **Backend Development (Go)**
-
+### Backend (Go)
 ```bash
 cd backend
-go mod tidy                              # Install dependencies
-go run main.go --help                   # Show CLI help
-go run main.go --server --port 8080     # Start API server
-go build -o website-markdown main.go    # Build binary
-```
+go mod tidy                          # Install dependencies
+go run main.go --help               # Show CLI help
+go run main.go --server             # Start API server
+go build -o website-markdown main.go # Build binary
 
-**Live reload during development:**
-
-```bash
-# Install air for live reloading (optional)
+# Live reload (optional)
 go install github.com/cosmtrek/air@latest
-cd backend && air  # Auto-restart on file changes
+air  # Auto-restart on changes
 ```
 
-### 🎨 **Frontend Development (Svelte + Bun)**
-
+### Frontend (Svelte + Bun)
 ```bash
 cd frontend
-bun i       # Install dependencies
-bun run dev         # Start dev server
+bun install     # Install dependencies
+bun run dev     # Start dev server
 ```
 
-### 📁 **Project Structure**
-
+### Project Structure
 ```
 website-markdown/
-├── 🗂️ backend/                    # Go API & CLI
-│   ├── main.go                   # Entry point + server/CLI routing
-│   ├── go.mod                    # Go dependencies
-│   ├── website-markdown          # Built binary (after go build)
-│   ├── cmd/
-│   │   └── cli.go               # CLI commands & file operations
-│   └── internal/
-│       ├── scraper/
-│       │   └── scraper.go       # Core scraping + duplicate prevention
-│       └── api/
-│           └── server.go        # HTTP API endpoints + CORS
-├── 🎨 frontend/                   # Svelte UI
-│   ├── src/
-│   │   ├── routes/
-│   │   │   └── +page.svelte     # Main UI component
-│   │   └── app.html             # HTML template
-│   ├── package.json             # Bun/Node dependencies
-│   ├── tailwind.config.js       # Tailwind CSS config
-│   └── vite.config.ts           # Vite build config
-├── 📚 README.md                   # This documentation
-├── 📄 LICENSE                     # MIT License
-├── 🤝 CONTRIBUTING.md             # Contribution guidelines
-└── 🏗️ .gitignore                 # Git ignore patterns
+├── backend/              # Go API & CLI
+│   ├── cmd/cli.go       # CLI commands & file operations
+│   ├── internal/
+│   │   ├── api/server.go    # HTTP endpoints
+│   │   └── scraper/scraper.go # Core scraping logic
+│   └── main.go          # Entry point
+├── frontend/             # Svelte UI
+│   ├── src/routes/+page.svelte # Main UI
+│   └── package.json     # Dependencies
+├── README.md             # Documentation
+└── LICENSE               # MIT License
 ```
 
 ## 📝 Real-World Examples
@@ -456,7 +421,7 @@ curl http://localhost:8080/health
 **JavaScript fetch:**
 
 ```javascript
-const response = await fetch('http://localhost:8080/api/v1/scrape', {
+const response = await fetch('http://localhost:8080/scrape', {
 	method: 'POST',
 	headers: { 'Content-Type': 'application/json' },
 	body: JSON.stringify({
@@ -471,6 +436,16 @@ const result = await response.json();
 console.log(
 	`✅ Found ${result.stats.successPages} pages in ${result.stats.processingTime}`
 );
+```
+
+**Download markdown file:**
+
+```bash
+# Direct download via API
+curl "http://localhost:8080/download/markdown?url=https://example.com&depth=2&delay=1000" \
+  --output website-content.md
+
+# Or with browser: http://localhost:8080/download/markdown?url=https://example.com
 ```
 
 ## 🤝 Contributing
