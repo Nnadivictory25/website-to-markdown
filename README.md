@@ -1,6 +1,14 @@
 # 🔄 Website to Markdown Converter
 
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+[![Go Version](https://img.shields.io/badge/Go-1.19+-blue.svg)](https://golang.org/)
+[![Svelte](https://img.shields.io/badge/Svelte-5-orange.svg)](https://svelte.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-blue.svg)](https://tailwindcss.com/)
+[![Bun](https://img.shields.io/badge/Bun-Latest-black.svg)](https://bun.sh/)
+
 A powerful Go-based tool that recursively converts websites to clean markdown format with **intelligent duplicate prevention**. Features both a **CLI tool** for terminal usage and a **REST API** with a beautiful **Svelte + Tailwind CSS** web interface.
+
+> 🎯 **Perfect for**: Documentation archiving, SEO audits, content migration, AI training data, and research projects!
 
 ## ✨ Features
 
@@ -368,6 +376,7 @@ website-markdown/
 ├── 🗂️ backend/                    # Go API & CLI
 │   ├── main.go                   # Entry point + server/CLI routing
 │   ├── go.mod                    # Go dependencies
+│   ├── website-markdown          # Built binary (after go build)
 │   ├── cmd/
 │   │   └── cli.go               # CLI commands & file operations
 │   └── internal/
@@ -383,7 +392,9 @@ website-markdown/
 │   ├── package.json             # Bun/Node dependencies
 │   ├── tailwind.config.js       # Tailwind CSS config
 │   └── vite.config.ts           # Vite build config
-├── 📚 README.md                   # This file
+├── 📚 README.md                   # This documentation
+├── 📄 LICENSE                     # MIT License
+├── 🤝 CONTRIBUTING.md             # Contribution guidelines
 └── 🏗️ .gitignore                 # Git ignore patterns
 ```
 
@@ -464,11 +475,27 @@ console.log(
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+We welcome contributions from everyone! Whether you're fixing bugs, adding features, improving documentation, or sharing ideas.
+
+### 🚀 **Quick Contribute**
+
+1. 🍴 Fork the repository
+2. 🌿 Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. ✨ Make your changes
+4. 🧪 Test your changes
+5. 📝 Commit with clear messages (`git commit -m '✨ Add amazing feature'`)
+6. 🚀 Push to your branch (`git push origin feature/amazing-feature`)
+7. 🎯 Open a Pull Request
+
+### 📋 **Areas We Need Help With:**
+
+- 🐛 **Bug fixes** - Duplicate detection, error handling
+- ✨ **Features** - Robots.txt support, sitemap parsing, PDF output
+- 🎨 **UI/UX** - Mobile improvements, dark mode, better progress
+- 📚 **Documentation** - More examples, translations
+- 🧪 **Testing** - Edge cases, performance testing
+
+See our [Contributing Guide](./CONTRIBUTING.md) for detailed information!
 
 ## 📄 License
 

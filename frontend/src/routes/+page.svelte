@@ -109,25 +109,27 @@
 		try {
 			const parsedUrl = new URL(websiteUrl);
 			let siteName = parsedUrl.hostname.replace(/^www\./, ''); // Remove www. prefix
-			
+
 			// Clean up the site name to be filesystem-safe
 			siteName = siteName.replace(/[^a-zA-Z0-9.-]/g, '-');
-			
+
 			// Generate timestamp
 			const now = new Date();
-			const timestamp = now.toISOString()
-				.replace(/[:]/g, '-')  // Replace colons with dashes
-				.replace(/\..+/, '')   // Remove milliseconds
-				.replace('T', '_');    // Replace T with underscore
-			
+			const timestamp = now
+				.toISOString()
+				.replace(/[:]/g, '-') // Replace colons with dashes
+				.replace(/\..+/, '') // Remove milliseconds
+				.replace('T', '_'); // Replace T with underscore
+
 			return `${siteName}_${timestamp}.${extension}`;
 		} catch (error) {
 			// Fallback if URL parsing fails
-			const timestamp = new Date().toISOString()
+			const timestamp = new Date()
+				.toISOString()
 				.replace(/[:]/g, '-')
 				.replace(/\..+/, '')
 				.replace('T', '_');
-			
+
 			return `website_${timestamp}.${extension}`;
 		}
 	}
