@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -17,6 +18,7 @@ type ScrapingConfig struct {
 	Delay          time.Duration `json:"delay"`
 	FollowExternal bool          `json:"followExternal"`
 	UserAgent      string        `json:"userAgent"`
+	Concurrency    int           `json:"concurrency"`
 }
 
 type ScrapedPage struct {
@@ -30,6 +32,7 @@ type ScrapedPage struct {
 type Scraper struct {
 	config         ScrapingConfig
 	visited        map[string]bool
+	visitedMutex   sync.RWMutex
 	baseHost       string
 	converter      *md.Converter
 	client         *http.Client
@@ -37,9 +40,10 @@ type Scraper struct {
 }
 
 const (
-	DEFAULT_MAX_DEPTH  = 3
-	DEFAULT_DELAY      = time.Second * 1
-	DEFAULT_USER_AGENT = "Website-Markdown-Converter/1.0"
+	DEFAULT_MAX_DEPTH   = 3
+	DEFAULT_DELAY       = time.Second * 1
+	DEFAULT_USER_AGENT  = "Website-Markdown-Converter/1.0"
+	DEFAULT_CONCURRENCY = 5
 )
 
 func NewScraper(config *ScrapingConfig) *Scraper {
@@ -49,7 +53,12 @@ func NewScraper(config *ScrapingConfig) *Scraper {
 			Delay:          DEFAULT_DELAY,
 			FollowExternal: false,
 			UserAgent:      DEFAULT_USER_AGENT,
+			Concurrency:    DEFAULT_CONCURRENCY,
 		}
+	}
+
+	if config.Concurrency <= 0 {
+		config.Concurrency = DEFAULT_CONCURRENCY
 	}
 
 	converter := md.NewConverter("", true, nil)
@@ -72,13 +81,12 @@ func (s *Scraper) ScrapeWebsite(startURL string) ([]*ScrapedPage, error) {
 	}
 
 	s.baseHost = parsedURL.Host
-	var results []*ScrapedPage
 
 	// Normalize the starting URL
 	normalizedStartURL := s.normalizeURL(startURL)
-	fmt.Printf("🚀 Starting recursive scrape of %s (max depth: %d)\n", normalizedStartURL, s.config.MaxDepth)
+	fmt.Printf("🚀 Starting level-based scrape of %s (max depth: %d, concurrency: %d)\n", normalizedStartURL, s.config.MaxDepth, s.config.Concurrency)
 
-	s.scrapeRecursive(normalizedStartURL, 0, &results)
+	results := s.scrapeLevelBFS(normalizedStartURL)
 
 	if s.duplicateCount > 0 {
 		fmt.Printf("✅ Scraping completed! Found %d unique pages (skipped %d duplicates)\n", len(results), s.duplicateCount)
@@ -88,53 +96,114 @@ func (s *Scraper) ScrapeWebsite(startURL string) ([]*ScrapedPage, error) {
 	return results, nil
 }
 
-func (s *Scraper) scrapeRecursive(pageURL string, depth int, results *[]*ScrapedPage) {
-	// Normalize URL to prevent duplicates
-	normalizedURL := s.normalizeURL(pageURL)
+func (s *Scraper) scrapeLevelBFS(startURL string) []*ScrapedPage {
+	var results []*ScrapedPage
 
-	// Check if already visited or max depth reached
-	if s.visited[normalizedURL] {
-		s.duplicateCount++
-		if pageURL != normalizedURL {
-			fmt.Printf("⏭️  Skipping duplicate (normalized): %s -> %s\n", pageURL, normalizedURL)
-		} else {
-			fmt.Printf("⏭️  Skipping already visited: %s\n", normalizedURL)
+	// Start with initial URL
+	currentLevel := []string{startURL}
+	s.visited[startURL] = true
+
+	// Process each level (depth)
+	for depth := 0; depth <= s.config.MaxDepth && len(currentLevel) > 0; depth++ {
+		fmt.Printf("📍 Processing depth %d (%d pages)...\n", depth, len(currentLevel))
+
+		// Phase 1: Scrape full content for all pages at current level
+		pagesAtThisLevel := s.scrapePagesConcurrent(currentLevel, depth)
+		results = append(results, pagesAtThisLevel...)
+
+		// Phase 2: Discover all links from pages at this level
+		nextLevelLinks := s.discoverLinksConcurrent(currentLevel)
+
+		// Filter: only keep unvisited links for next level
+		currentLevel = s.filterUnvisited(nextLevelLinks)
+
+		if len(currentLevel) > 0 {
+			fmt.Printf("🔗 Found %d new pages for depth %d\n", len(currentLevel), depth+1)
 		}
-		return
 	}
 
-	if depth > s.config.MaxDepth {
-		fmt.Printf("🛑 Max depth reached (%d), skipping: %s\n", s.config.MaxDepth, normalizedURL)
-		return
+	return results
+}
+
+func (s *Scraper) scrapePagesConcurrent(urls []string, depth int) []*ScrapedPage {
+	var wg sync.WaitGroup
+	pagesChan := make(chan *ScrapedPage, len(urls))
+
+	for _, u := range urls {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+
+			fmt.Printf("📄 Scraping (depth %d): %s\n", depth, url)
+			page, _ := s.scrapePage(url, depth)
+			if page != nil {
+				pagesChan <- page
+			}
+		}(u)
 	}
 
-	s.visited[normalizedURL] = true
+	go func() {
+		wg.Wait()
+		close(pagesChan)
+	}()
 
-	if pageURL != normalizedURL {
-		fmt.Printf("📄 Scraping (depth %d): %s (normalized from %s)\n", depth, normalizedURL, pageURL)
-	} else {
-		fmt.Printf("📄 Scraping (depth %d): %s\n", depth, normalizedURL)
+	var pages []*ScrapedPage
+	for page := range pagesChan {
+		pages = append(pages, page)
 	}
 
-	// Add delay between requests
-	if depth > 0 {
-		time.Sleep(s.config.Delay)
+	return pages
+}
+
+func (s *Scraper) discoverLinksConcurrent(urls []string) []string {
+	var wg sync.WaitGroup
+	linksChan := make(chan []string, len(urls))
+
+	for _, u := range urls {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+			_, links := s.scrapePage(url, 0)
+			linksChan <- links
+		}(u)
 	}
 
-	page, links := s.scrapePage(normalizedURL, depth)
+	go func() {
+		wg.Wait()
+		close(linksChan)
+	}()
 
-	// Only add page to results if it wasn't filtered out
-	if page != nil {
-		*results = append(*results, page)
+	var allLinks []string
+	seen := make(map[string]bool)
 
-		// Recursively scrape found links
+	for links := range linksChan {
 		for _, link := range links {
-			normalizedLink := s.normalizeURL(link)
-			if !s.visited[normalizedLink] {
-				s.scrapeRecursive(normalizedLink, depth+1, results)
+			normalized := s.normalizeURL(link)
+			if !seen[normalized] {
+				seen[normalized] = true
+				allLinks = append(allLinks, normalized)
 			}
 		}
 	}
+
+	return allLinks
+}
+
+func (s *Scraper) filterUnvisited(urls []string) []string {
+	s.visitedMutex.Lock()
+	defer s.visitedMutex.Unlock()
+
+	var unvisited []string
+	for _, url := range urls {
+		if !s.visited[url] {
+			s.visited[url] = true
+			unvisited = append(unvisited, url)
+		} else {
+			s.duplicateCount++
+		}
+	}
+
+	return unvisited
 }
 
 func (s *Scraper) scrapePage(pageURL string, depth int) (*ScrapedPage, []string) {
